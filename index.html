@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Quality Compressor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        img {
+            max-width: 45%;
+            margin: 10px;
+            border: 1px solid #ddd;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            /* flex-wrap: wrap; */
+            flex-direction: row;
+        }
+
+        .container div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container img {
+            max-width: 100%;
+        }
+
+        .info {
+            font-size: 22px;
+            color: #555;
+            font-weight: bold;
+            height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Quality Compressor</h1>
+    <input type="file" id="upload" accept="image/*">
+    <br><br>
+    <label for="quality">Quality (0 - 1): </label>
+    <input type="range" id="quality" min="0" max="1" step="0.01" value="0.8">
+    <span id="qualityValue">0.8</span>
+    <br><br>
+    <button onclick="compressImage()">Compress & Compare</button>
+
+    <h2>Original vs Compressed</h2>
+    <div class="container">
+        <div>
+            <div class="info" id="originalInfo"></div>
+            <img id="original" alt="Original Image">
+        </div>
+        <div>
+            <div class="info" id="compressedInfo"></div>
+            <img id="compressed" alt="Compressed Image">
+        </div>
+    </div>
+
+    <script>
+        const upload = document.getElementById('upload');
+        const qualityInput = document.getElementById('quality');
+        const qualityValue = document.getElementById('qualityValue');
+        const originalImg = document.getElementById('original');
+        const compressedImg = document.getElementById('compressed');
+        const originalInfo = document.getElementById('originalInfo');
+        const compressedInfo = document.getElementById('compressedInfo');
+
+        qualityInput.addEventListener('input', () => {
+            qualityValue.textContent = qualityInput.value;
+        });
+
+        upload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    originalImg.src = e.target.result;
+                    originalImg.onload = () => {
+                        displayImageInfo(file.size, originalImg, originalInfo);
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function compressImage() {
+            const quality = parseFloat(qualityInput.value);
+            if (!upload.files[0]) {
+                alert('Please upload an image first.');
+                return;
+            }
+
+            const img = new Image();
+            img.src = originalImg.src;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+
+                canvas.toBlob((blob) => {
+                    const url = URL.createObjectURL(blob);
+                    compressedImg.src = url;
+                    compressedImg.onload = () => {
+                        displayImageInfo(blob.size, compressedImg, compressedInfo);
+                        showSizeReduction(upload.files[0].size, blob.size);
+                    };
+                }, 'image/jpeg', quality);
+            };
+        }
+
+        function displayImageInfo(size, image, infoElement) {
+            const sizeKB = (size / 1024).toFixed(2);
+            infoElement.innerHTML = `
+                <div>Dimensions: ${image.naturalWidth} x ${image.naturalHeight} px</div>
+                <div>File Size: ${sizeKB} KB</div>
+            `;
+        }
+
+        function showSizeReduction(originalSize, compressedSize) {
+            const reduction = ((originalSize - compressedSize) / originalSize * 100).toFixed(2);
+            compressedInfo.innerHTML += `
+                <div>Size Reduction: ${reduction}%</div>
+            `;
+        }
+    </script>
+</body>
+</html>
